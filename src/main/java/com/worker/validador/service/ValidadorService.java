@@ -2,28 +2,35 @@ package com.worker.validador.service;
 
 import com.worker.validador.model.Cartao;
 import com.worker.validador.model.Pedido;
+import com.worker.validador.service.exceptions.LimiteIndisponivelException;
+import com.worker.validador.service.exceptions.SaldoInsuficienteException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class ValidadorService {
 
-    public void validarPedido(Pedido pedido) throws Exception {
+    @Autowired
+    private EmailService emailService;
+
+    public void validarPedido(Pedido pedido) {
         validarLimiteDisponivel(pedido.getCartao());
         validarCompraComLimite(pedido);
+        emailService.notificarClienteCompraComSucesso(pedido.getEmail());
     }
 
-    private void validarCompraComLimite(Pedido pedido) throws Exception {
+    private void validarCompraComLimite(Pedido pedido) {
         if(pedido.getValor().longValue() > pedido.getCartao().getLimiteDisponivel().longValue()){
             log.error("Valor do pedido: {}. Limite disponivel: {}", pedido.getValor(), pedido.getCartao().getLimiteDisponivel());
-            throw new Exception("Você não tem limite para efetuar essa compra!");
+            throw new SaldoInsuficienteException("Você não tem limite para efetuar essa compra!");
         }
     }
 
-    private void validarLimiteDisponivel(Cartao cartao) throws Exception {
+    private void validarLimiteDisponivel(Cartao cartao) {
         if(cartao.getLimiteDisponivel().longValue() <= 0){
-            throw new Exception("Limite indisponível");
+            throw new LimiteIndisponivelException("Limite indisponível");
         }
     }
 }
